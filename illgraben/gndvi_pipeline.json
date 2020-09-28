@@ -1,0 +1,12 @@
+[
+	"temp/dense_coaligned_2020-08-26T09-20.ply",
+	{
+		"type": "filters.ferry",
+		"dimensions": "=>GNDVI"
+	},
+	{
+		"type": "filters.assign",
+		"value": "GNDVI = (Red - Green) / (Red + Green)"
+	},
+	"temp/dense_coaligned_2020-08-26T09-20_gndvi.ply"
+]
