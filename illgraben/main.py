@@ -7,10 +7,13 @@ import os
 import Metashape as ms
 import json
 
+from . import stable_ground
+
 
 TEMP_FOLDER = "temp"
 DEM_GRIDSIZE = 1
 DEPTH_MAP_DOWNSCALING = 4
+TEMPORARY_DEPTH_MAP_DOWNSCALING = 8
 ORTHOMOSAIC_RESOLUTION = 0.25
 
 if not os.path.isdir(TEMP_FOLDER):
@@ -415,7 +418,7 @@ def generate_dem(chunk, redo):
         },
         {
             "resolution": GRID_SIZE,
-            "bounds": "([MIN_X, MAX_X],[MIN_Y, MAX_Y])", 
+            "bounds": "([MIN_X, MAX_X],[MIN_Y, MAX_Y])",
             "output_type": "mean",
             "filename": "OUTPUT_RASTER_PATH"
         }
@@ -443,6 +446,10 @@ def main(redo=False):
     3. Align the chunks to a reference chunk using ICP
     4. Generate dense clouds, DEMs and orthomosaics
     """
+    if redo:
+        big_print("Redo flag set to True. Redoing steps that already seem to exist")
+    else:
+        big_print("Redo flag set to False. Not redoing steps that already seem to exist")
     # Remove all temporary results if the analysis should be redone.
     if redo:
         shutil.rmtree("temp")
@@ -476,11 +483,37 @@ def main(redo=False):
 
     doc.save()
 
+    # Generate low-resolution dense point clouds for fine-grained ICP
+    for chunk in doc.chunks:
+        if chunk.dense_cloud is not None and not redo and\
+                chunk.dense_cloud.meta["BuildDepthMaps/downscale"] == str(TEMPORARY_DEPTH_MAP_DOWNSCALING):
+            continue
+        big_print("Generating small dense cloud for {}".format(chunk.label))
+        chunk.buildDepthMaps(downscale=TEMPORARY_DEPTH_MAP_DOWNSCALING, filter_mode=ms.FilterMode.AggressiveFiltering)
+        chunk.buildDenseCloud()
+        chunk.exportPoints(
+            os.path.join(TEMP_FOLDER, chunk.label, "dense_cloud_lowres.ply"),
+            source_data=ms.DataSource.DenseCloudData,
+            crs=chunk.crs)
+        doc.save()
+
+    big_print("Running fine grained ICP on stable ground features")
+    for chunk in chunks_to_be_aligned:
+        # Check if an automatic ICP exists.
+        if "auto_ICP_000" in (marker.label for marker in chunk.markers) and not redo:
+            print("auto_ICPs already seem to exist. Skipping {}".format(chunk.label))
+        stable_ground.align_stable_ground_locations(reference_chunk, chunk)
+        chunk.optimizeCameras()
+        doc.save()
+
     # Generate dense point clouds
     if not redo:
         big_print("Checking for dense clouds")
     for chunk in doc.chunks:
-        if chunk.dense_cloud is not None and not redo:
+        # Check if dense cloud exists, if it should be redone, and whether the dense cloud has the right resolution
+        # If any of those criteria are false, it rebuilds the dense cloud
+        if chunk.dense_cloud is not None and not redo and\
+                chunk.dense_cloud.meta["BuildDepthMaps/downscale"] == str(DEPTH_MAP_DOWNSCALING):
             continue
         big_print("Generating dense cloud for {}".format(chunk.label))
         chunk.buildDepthMaps(downscale=DEPTH_MAP_DOWNSCALING, filter_mode=ms.FilterMode.AggressiveFiltering)
@@ -506,7 +539,3 @@ def main(redo=False):
         big_print("Generating orthomosaic for {}".format(chunk.label))
         chunk.buildOrthomosaic(surface_data=ms.DataSource.ElevationData, resolution=ORTHOMOSAIC_RESOLUTION)
         doc.save()
-
-
-if __name__ == "__main__":
-    main(redo=False)
