@@ -1,10 +1,36 @@
 """Python or C-related utility functions."""
-from contextlib import contextmanager
 import ctypes
 import io
 import os
+import subprocess
 import sys
 import tempfile
+import time
+from contextlib import contextmanager
+from typing import Any
+
+import statictypes
+
+from illgraben.files import log
+
+
+def big_print(string):
+    """
+    Print a string with space above and below it.
+
+    param: string: The string to print.
+    type: string: str
+    """
+    separator = "============================="
+
+    current_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+
+    print("\n", separator, "\n")
+    print(current_time, "\t", string)
+    print("\n", separator, "\n")
+
+    log(string)
+
 
 libc = ctypes.CDLL(None)
 c_stdout = ctypes.c_void_p.in_dll(libc, 'stdout')
@@ -52,3 +78,38 @@ def no_stdout(stream=None):
     finally:
         tfile.close()
         os.close(saved_stdout_fd)
+
+
+class ConstantType:
+    """Generic readonly document constants class."""
+
+    @statictypes.enforce
+    def __getitem__(self, key: str) -> Any:
+        """
+        Get an item like a dict.
+
+        param: key: The attribute name.
+
+        return: attribute: The value of the attribute.
+        """
+        attribute = self.__getattribute__(key)
+        return attribute
+
+    @staticmethod
+    def raise_readonly_error(key, value):
+        """Raise a readonly error if a value is trying to be set."""
+        raise ValueError(f"Trying to change a constant. Key: {key}, value: {value}")
+
+    def __setattr__(self, key, value):
+        """Override the Constants.key = value action."""
+        self.raise_readonly_error(key, value)
+
+    def __setitem__(self, key, value):
+        """Override the Constants['key'] = value action."""
+        self.raise_readonly_error(key, value)
+
+
+@statictypes.enforce
+def notify(message: str) -> None:
+    """Send a notification to the current user."""
+    subprocess.run(["notify-send", message], check=True)
