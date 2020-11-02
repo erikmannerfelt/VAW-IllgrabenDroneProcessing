@@ -7,7 +7,7 @@ import statictypes
 
 from illgraben import processing_tools, stable_ground_icp
 from illgraben.constants import CONSTANTS
-from illgraben.files import PROCESSING_FOLDER
+from illgraben.files import PROCESSING_FOLDER, log
 from illgraben.utilities import big_print, no_stdout
 
 
@@ -27,7 +27,7 @@ def import_camera_reference(chunk: ms.Chunk, filepath: str) -> None:
         chunk.updateTransform()
 
 
-@statictypes.enforce
+# @statictypes.enforce
 def align_chunk(reference_chunk: ms.Chunk, aligned_chunk: ms.Chunk) -> None:
     """
     Run all functions to align one chunk to a reference chunk.
@@ -126,6 +126,9 @@ def init_chunk(doc: ms.Document, label: str):
     with no_stdout():
         chunk.matchPhotos()
         chunk.alignCameras()
+
+    print(f"Finished aligning: {label}")
+    log(f"Finished aligning: {label}")
 
 
 def initialise_chunks(doc: ms.Document, reference_chunk_label: ms.Chunk) -> tuple[ms.Chunk, list[ms.Chunk]]:
