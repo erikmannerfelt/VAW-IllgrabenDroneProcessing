@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 
-import Metashape as ms
-import os
 import json
+import os
 from collections import namedtuple
 
-from . import pdal
-from . import main
+import Metashape as ms
+
+from . import main, pdal
 
 # What command to run pdal as
 PDAL_PATH = "pdal"
@@ -125,6 +125,7 @@ def compare_features(reference_chunk, aligned_chunk, bounds):
     Point = namedtuple("Point", ["start", "destination"])
 
     points = []
+    print("Running feature-wise ICP for chunk: {}".format(aligned_chunk.label))
     for i, feature in enumerate(features):
         icp_file = os.path.join(aligned_feature_dir, feature.replace(".las", "_icp_meta.json"))
         print(icp_file)
@@ -133,7 +134,6 @@ def compare_features(reference_chunk, aligned_chunk, bounds):
                 print("Loading cached ICP")
                 transform = json.load(infile)["stages"]["filters.icp"]["composed"].replace("\n", " ")
         else:
-            print("Running ICP for chunk: {}, feature {}".format(aligned_chunk.label, i))
             transform = pdal.icp_coregistration(
                 os.path.join(reference_feature_dir, feature),
                 os.path.join(aligned_feature_dir, feature),
@@ -180,7 +180,7 @@ def align_stable_ground_locations(reference_chunk, aligned_chunk):
 
     # TODO: Dangerous assumption that they exist
     if not os.path.isdir(os.path.join(main.TEMP_FOLDER, aligned_chunk.label, "features")):
-        print("Extracting features from chunk: {}".format(aligned_chunk))
+        print("Extracting features from chunk: {}".format(aligned_chunk.label))
         extract_features(aligned_chunk, bounds)
 
     points = compare_features(reference_chunk, aligned_chunk, bounds)

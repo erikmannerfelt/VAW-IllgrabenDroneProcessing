@@ -1,14 +1,15 @@
-"""
-Align images of the Illigraben dataset autonomously.
-"""
-import subprocess
-import shutil
-import os
-import Metashape as ms
+"""Align images of the Illigraben dataset autonomously."""
+
 import json
+import os
+import shutil
+import subprocess
+import time
+
+import Metashape as ms
 
 from . import stable_ground
-
+from .utilities import no_stdout
 
 TEMP_FOLDER = "temp"
 DEM_GRIDSIZE = 1
@@ -29,8 +30,15 @@ def big_print(string):
     """
     separator = "============================="
 
+    current_time = time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(time.time()))
+
     print("\n", separator, "\n")
-    print(string)
+    print(current_time.replace("T", "  "), "\t", string)
+
+    log_filepath = os.path.join(TEMP_FOLDER, "process.log")
+    if os.path.isfile(log_filepath):
+        with open(log_filepath, "a+") as outfile:
+            outfile.write("{}\t{}\n".format(current_time, string))
     print("\n", separator, "\n")
 
 
@@ -188,9 +196,10 @@ def import_camera_reference(chunk, filename):
     param: filename: The input filename.
     type: filename: str
     """
-    chunk.importReference(path=filename, delimiter=",", columns="nxyz", create_markers=False,
-                          crs=chunk.crs, items=ms.ReferenceItemsCameras)
-    chunk.updateTransform()
+    with no_stdout():
+        chunk.importReference(path=filename, delimiter=",", columns="nxyz", create_markers=False,
+                              crs=chunk.crs, items=ms.ReferenceItemsCameras)
+        chunk.updateTransform()
 
 
 def align_chunk(reference_chunk, aligned_chunk):
@@ -232,12 +241,13 @@ def save_point_cloud(chunk):
     param: chunk: What chunk to export the point cloud from.
     type: chunk: Metashape Chunk
     """
-    chunk.exportPoints(os.path.join(TEMP_FOLDER, chunk.label, "point_cloud.las"),
-                       source_data=ms.DataSource.PointCloudData,
-                       save_normals=False,
-                       save_colors=False,
-                       save_classes=False,
-                       crs=chunk.crs)
+    with no_stdout():
+        chunk.exportPoints(os.path.join(TEMP_FOLDER, chunk.label, "point_cloud.las"),
+                           source_data=ms.DataSource.PointCloudData,
+                           save_normals=False,
+                           save_colors=False,
+                           save_classes=False,
+                           crs=chunk.crs)
 
 
 def init_chunk(doc, label):
@@ -263,7 +273,8 @@ def init_chunk(doc, label):
     # Add the chunk's images
     photo_dir = os.path.join("input", label, "images")
     photos = [os.path.join(photo_dir, photo) for photo in os.listdir(photo_dir)]
-    chunk.addPhotos(photos)
+    with no_stdout():
+        chunk.addPhotos(photos)
 
     # Set the x/y/z location accuracy
     chunk.camera_location_accuracy = [2.5] * 3
@@ -293,8 +304,9 @@ def init_chunk(doc, label):
         sensor.rolling_shutter = True
 
     # Align the cameras
-    chunk.matchPhotos()
-    chunk.alignCameras()
+    with no_stdout():
+        chunk.matchPhotos()
+        chunk.alignCameras()
 
 
 def initialise_chunks(doc, reference_chunk_label, redo):
@@ -392,11 +404,12 @@ def generate_dem(chunk, redo):
     dense_cloud_path = os.path.join(TEMP_FOLDER, chunk.label, "dense_cloud.ply")
 
     if not os.path.isfile(dense_cloud_path) or redo:
-        chunk.exportPoints(
-            dense_cloud_path,
-            source_data=ms.DataSource.DenseCloudData,
-            crs=chunk.crs,
-            save_confidence=True)
+        with no_stdout():
+            chunk.exportPoints(
+                dense_cloud_path,
+                source_data=ms.DataSource.DenseCloudData,
+                crs=chunk.crs,
+                save_confidence=True)
 
     output_raster_path = os.path.join(os.path.dirname(dense_cloud_path), "dem.tif")
 
@@ -437,6 +450,16 @@ def generate_dem(chunk, redo):
     chunk.importRaster(path=output_raster_path, crs=chunk.crs)
 
 
+def save(doc, filename=None):
+    """Save the document"""
+    if filename is None:
+        with no_stdout():
+            doc.save()
+        print("Saved project")
+    else:
+        doc.save(filename)
+
+
 def main(redo=False):
     """
     Run the entire processing pipeline.
@@ -468,7 +491,9 @@ def main(redo=False):
         doc.open(document_name)
     # Otherwise, make a new one
     else:
-        doc.save(document_name)
+        save(doc, document_name)
+        with open(os.path.join(TEMP_FOLDER, "process.log"), "w") as outfile:
+            outfile.write("New process started.")
 
     # Check that the document is not in readonly mode
     assert not doc.read_only, "Document is in read-only mode."
@@ -481,7 +506,7 @@ def main(redo=False):
     # Check that a reference chunk exists
     assert reference_chunk is not None, "Reference chunk {} could not be found".format(reference_chunk_label)
 
-    doc.save()
+    save(doc)
 
     # Generate low-resolution dense point clouds for fine-grained ICP
     for chunk in doc.chunks:
@@ -489,13 +514,15 @@ def main(redo=False):
                 chunk.dense_cloud.meta["BuildDepthMaps/downscale"] == str(TEMPORARY_DEPTH_MAP_DOWNSCALING):
             continue
         big_print("Generating small dense cloud for {}".format(chunk.label))
-        chunk.buildDepthMaps(downscale=TEMPORARY_DEPTH_MAP_DOWNSCALING, filter_mode=ms.FilterMode.AggressiveFiltering)
-        chunk.buildDenseCloud()
-        chunk.exportPoints(
-            os.path.join(TEMP_FOLDER, chunk.label, "dense_cloud_lowres.ply"),
-            source_data=ms.DataSource.DenseCloudData,
-            crs=chunk.crs)
-        doc.save()
+        with no_stdout():
+            chunk.buildDepthMaps(downscale=TEMPORARY_DEPTH_MAP_DOWNSCALING,
+                                 filter_mode=ms.FilterMode.AggressiveFiltering)
+            chunk.buildDenseCloud()
+            chunk.exportPoints(
+                os.path.join(TEMP_FOLDER, chunk.label, "dense_cloud_lowres.ply"),
+                source_data=ms.DataSource.DenseCloudData,
+                crs=chunk.crs)
+        save(doc)
 
     big_print("Running fine grained ICP on stable ground features")
     for chunk in chunks_to_be_aligned:
@@ -503,8 +530,9 @@ def main(redo=False):
         if "auto_ICP_000" in (marker.label for marker in chunk.markers) and not redo:
             print("auto_ICPs already seem to exist. Skipping {}".format(chunk.label))
         stable_ground.align_stable_ground_locations(reference_chunk, chunk)
-        chunk.optimizeCameras()
-        doc.save()
+        with no_stdout():
+            chunk.optimizeCameras()
+        save(doc)
 
     # Generate dense point clouds
     if not redo:
@@ -516,9 +544,10 @@ def main(redo=False):
                 chunk.dense_cloud.meta["BuildDepthMaps/downscale"] == str(DEPTH_MAP_DOWNSCALING):
             continue
         big_print("Generating dense cloud for {}".format(chunk.label))
-        chunk.buildDepthMaps(downscale=DEPTH_MAP_DOWNSCALING, filter_mode=ms.FilterMode.AggressiveFiltering)
-        chunk.buildDenseCloud(point_confidence=True)
-        doc.save()
+        with no_stdout():
+            chunk.buildDepthMaps(downscale=DEPTH_MAP_DOWNSCALING, filter_mode=ms.FilterMode.AggressiveFiltering)
+            chunk.buildDenseCloud(point_confidence=True)
+        save(doc)
 
     # Generate DEMs
     if not redo:
@@ -528,7 +557,7 @@ def main(redo=False):
             continue
         big_print("Generating DEM for {}".format(chunk.label))
         generate_dem(chunk, redo)
-        doc.save()
+        save(doc)
 
     # Generate orthomosaics
     if not redo:
@@ -537,5 +566,6 @@ def main(redo=False):
         if chunk.orthomosaic is not None and not redo:
             continue
         big_print("Generating orthomosaic for {}".format(chunk.label))
-        chunk.buildOrthomosaic(surface_data=ms.DataSource.ElevationData, resolution=ORTHOMOSAIC_RESOLUTION)
-        doc.save()
+        with no_stdout():
+            chunk.buildOrthomosaic(surface_data=ms.DataSource.ElevationData, resolution=ORTHOMOSAIC_RESOLUTION)
+        save(doc)
