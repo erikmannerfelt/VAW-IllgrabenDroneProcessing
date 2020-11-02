@@ -1,0 +1,10 @@
+name: illgraben
+channels:
+        - conda-forge
+
+dependencies:
+        - python=3.9.*
+        - pip=20.*
+        - pip:
+                - http://download.agisoft.com/Metashape-1.6.5-cp35.cp36.cp37-abi3-linux_x86_64.whl
+

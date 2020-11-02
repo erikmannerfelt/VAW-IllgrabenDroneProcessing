@@ -5,3 +5,5 @@ input/
 temp/
 *__pycache__*
 screenshots/
+.env
+TODO
