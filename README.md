@@ -18,7 +18,7 @@ Then, make sure that the environment variable `agisoft_LICENSE` points toward a 
 #### Data structure
 The input folder structure is fixed:
 
-```
+```bash
 input
 |    reference.txt  #  A text file with the name of the reference survey (the folder name)
 |    stable_ground_points.xyz  # A csv of X/Y/Z coordinates for stable points in the terrain.
