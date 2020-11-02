@@ -1,5 +1,8 @@
 # illgraben: Automated drone survey processing for Illgraben in Switzerland.
 
+This script utilises the Agisoft Metashape API and feature-wise ICP registration to coalign and process an arbitrary amount of repeat datasets at Illgraben in Switzerland.
+The feature-wise ICP registration works by extracting manually picked areas of ground assumed to be stable, and using the post-ICP transform to generate automatic Metashape markers which aligns one dataset to a reference.
+
 ## Requirements
 
 * Conda
@@ -45,3 +48,12 @@ Make sure you are in the working directory with the `illgraben` environment acti
 ```bash
 $ python -m illgraben
 ```
+
+# Todo list
+* Generate good error measures for the surveys
+* Align the "reference survey" to the swissAlti3D "higher reference" dataset
+* Add a filtering method for poor ICP matches.
+* Additionally, skip extracted features that have a low or no point count.
+* Make sure that the above fixes improve the alignment quality of all the surveys, especially in the top
+* Remove the forest from the subsequent DEMs (GNDVI maybe?)
+

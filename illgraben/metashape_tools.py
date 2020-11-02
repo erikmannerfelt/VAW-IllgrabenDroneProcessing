@@ -90,7 +90,7 @@ def init_chunk(doc: ms.Document, label: str):
     chunk.label = label
 
     # Add the chunk's images
-    photo_dir = os.path.join("input", label, "images")
+    photo_dir = os.path.join("input/surveys", label, "images")
     photos = [os.path.join(photo_dir, photo) for photo in os.listdir(photo_dir)]
     with no_stdout():
         chunk.addPhotos(photos)
@@ -155,8 +155,8 @@ def initialise_chunks(doc: ms.Document, reference_chunk_label: ms.Chunk) -> tupl
         big_print("Aligning all chunks")
         # List all of the surveys in the input folder
         surveys = []
-        for item in os.listdir("input/"):
-            if os.path.isdir(os.path.join("input/", item)):
+        for item in os.listdir("input/surveys"):
+            if os.path.isdir(os.path.join("input/surveys", item)):
                 surveys.append(item)
 
         # Check that at least two surveys exist
