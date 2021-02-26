@@ -1,5 +1,7 @@
 """Stable ground ICP coalignment analysis."""
 
+from __future__ import annotations
+
 import os
 from collections import namedtuple
 
@@ -31,7 +33,7 @@ def get_stable_ground_locations() -> list[tuple[float, float, float]]:
         stable_points.append(tuple([float(string) for string in line.split(",")]))
 
     assert len(stable_points) > 0, "No points read from stable_ground_points.xyz!"
-    return stable_points[:3]  # type: ignore
+    return stable_points  # type: ignore
 
 
 # Create a helper namedtuple for bounds checking
@@ -143,10 +145,10 @@ def compare_features(reference_chunk: ms.Chunk, aligned_chunk: ms.Chunk, bounds:
         if os.path.isfile(icp_output_meta_file):
             print("Using cached ICP")
         else:
-            processing_tools.icp_coregistration(
+            processing_tools.run_icp(
                 os.path.join(reference_feature_dir, feature),
                 os.path.join(aligned_feature_dir, feature),
-                composed=True)
+            )
 
         # Use the first point in the reference vs. aligned point cloud as a source-destination pair
         starting_point_0 = processing_tools.get_first_point_info(os.path.join(aligned_feature_dir, feature))

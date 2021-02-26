@@ -69,8 +69,7 @@ def run_icp(reference_cloud_filepath: str, aligned_cloud_filepath: str) -> str:
     """
     # Name for the ICP registration metadata file.
     icp_meta_filename = os.path.join(os.path.dirname(aligned_cloud_filepath), "icp_meta.json")
-    transformed_cloud_output_filepath = os.path.join(
-        os.path.dirname(aligned_cloud_filepath), "point_cloud_registered.las")
+    transformed_cloud_output_filepath = os.path.splitext(aligned_cloud_filepath)[0] + "_ICP_aligned.las"
 
     # The pipeline to feed PDAL
     icp_pipeline = '''

@@ -206,7 +206,7 @@ def export_camera_reference(chunk: ms.Chunk, filepath: str) -> None:
             # Importing needs the extension, e.g. .JPG, which is not always in the chunk label
             label = os.path.basename(cam.photo.path)
             easting, northing, altitude = cam.reference.location
-            outfile.write(",".join((label, easting, northing, altitude)) + "\n")
+            outfile.write(f"{label},{easting},{northing},{altitude}\n")
 
 
 def generate_dem(chunk: ms.Chunk, redo: bool = False):

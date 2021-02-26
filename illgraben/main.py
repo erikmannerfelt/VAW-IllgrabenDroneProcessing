@@ -69,7 +69,7 @@ def main(redo=False):
             continue
         big_print("Generating small dense cloud for {}".format(chunk.label))
         # TODO: Change to build smaller dense clouds?
-        metashape_tools.build_dense_cloud(chunk)
+        metashape_tools.build_dense_cloud(chunk, point_confidence=True)
         metashape_tools.export_dense_cloud(chunk, "dense_cloud_for_ICP.ply")
         metashape_tools.save(doc)
 
@@ -96,7 +96,7 @@ def main(redo=False):
             continue
         big_print("Generating dense cloud for {}".format(chunk.label))
 
-        metashape_tools.build_dense_cloud(chunk)
+        metashape_tools.build_dense_cloud(chunk, point_confidence=True)
         metashape_tools.save(doc)
 
     # Generate DEMs
