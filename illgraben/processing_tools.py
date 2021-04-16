@@ -44,7 +44,7 @@ def run_pdal_pipeline(pipeline: str, output_metadata_file: Optional[str] = None,
     commands = ["pdal", "pipeline", "--stdin", "--metadata", os.path.join(temp_dir.name, "meta.json")]
     if not stream:
         commands.append("--nostream")
-    subprocess.run(commands, input=pipeline, check=True, encoding="utf-8")
+    subprocess.run(commands, input=pipeline, check=True, encoding="utf-8", stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     # Load the temporary metadata file
     with open(os.path.join(temp_dir.name, "meta.json")) as infile:

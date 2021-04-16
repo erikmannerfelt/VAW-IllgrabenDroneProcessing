@@ -145,10 +145,16 @@ def compare_features(reference_chunk: ms.Chunk, aligned_chunk: ms.Chunk, bounds:
         if os.path.isfile(icp_output_meta_file):
             print("Using cached ICP")
         else:
-            processing_tools.run_icp(
-                os.path.join(reference_feature_dir, feature),
-                os.path.join(aligned_feature_dir, feature),
-            )
+            try:
+                processing_tools.run_icp(
+                    os.path.join(reference_feature_dir, feature),
+                    os.path.join(aligned_feature_dir, feature),
+                )
+            except Exception as exception:
+                # Sometimes ICP creates crazy solutions, which makes result writing fail.
+                if "returned non-zero exit status" not in str(exception):
+                    raise exception
+                continue
 
         # Use the first point in the reference vs. aligned point cloud as a source-destination pair
         starting_point_0 = processing_tools.get_first_point_info(os.path.join(aligned_feature_dir, feature))

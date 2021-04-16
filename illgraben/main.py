@@ -69,7 +69,15 @@ def main(redo=False):
             continue
         big_print("Generating small dense cloud for {}".format(chunk.label))
         # TODO: Change to build smaller dense clouds?
-        metashape_tools.build_dense_cloud(chunk, point_confidence=True)
+        try:
+            metashape_tools.build_dense_cloud(chunk, point_confidence=True)
+        except Exception as exception:
+            if "Zero resolution" in str(exception):
+                continue
+            if "Assertion 23910910127 failed" in str(exception):
+                continue
+
+            raise exception
         metashape_tools.export_dense_cloud(chunk, "dense_cloud_for_ICP.ply")
         metashape_tools.save(doc)
 
@@ -96,7 +104,11 @@ def main(redo=False):
             continue
         big_print("Generating dense cloud for {}".format(chunk.label))
 
-        metashape_tools.build_dense_cloud(chunk, point_confidence=True)
+        try:
+            metashape_tools.build_dense_cloud(chunk, point_confidence=True)
+        except Exception as exception:
+            if "Zero resolution" not in str(exception):
+                raise exception
         metashape_tools.save(doc)
 
     # Generate DEMs

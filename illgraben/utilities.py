@@ -9,7 +9,7 @@ import time
 from contextlib import contextmanager
 from typing import Any
 
-import statictypes
+
 
 from illgraben.files import log
 
@@ -83,7 +83,7 @@ def no_stdout(stream=None):
 class ConstantType:
     """Generic readonly document constants class."""
 
-    @statictypes.enforce
+
     def __getitem__(self, key: str) -> Any:
         """
         Get an item like a dict.
@@ -109,7 +109,7 @@ class ConstantType:
         self.raise_readonly_error(key, value)
 
 
-@statictypes.enforce
+
 def notify(message: str) -> None:
     """Send a notification to the current user."""
     subprocess.run(["notify-send", message], check=True)

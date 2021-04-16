@@ -3,7 +3,7 @@ import os
 import subprocess
 
 import Metashape as ms
-import statictypes
+
 
 from illgraben import processing_tools, stable_ground_icp
 from illgraben.constants import CONSTANTS
@@ -11,7 +11,7 @@ from illgraben.files import PROCESSING_FOLDER, log
 from illgraben.utilities import big_print, no_stdout
 
 
-@statictypes.enforce
+
 def import_camera_reference(chunk: ms.Chunk, filepath: str) -> None:
     """
     Import camera reference data from a CSV.
@@ -27,7 +27,7 @@ def import_camera_reference(chunk: ms.Chunk, filepath: str) -> None:
         chunk.updateTransform()
 
 
-# @statictypes.enforce
+
 def align_chunk(reference_chunk: ms.Chunk, aligned_chunk: ms.Chunk) -> None:
     """
     Run all functions to align one chunk to a reference chunk.
@@ -298,11 +298,15 @@ def export_dense_cloud(chunk: ms.Chunk, filename: str) -> None:
     param: name_template: The name to give the point cloud in its appropriate chunk processing directory.
 
     """
-    with no_stdout():
-        chunk.exportPoints(
-            os.path.join(PROCESSING_FOLDER, chunk.label, filename),
-            source_data=ms.DataSource.DenseCloudData,
-            crs=chunk.crs)
+    try:
+        with no_stdout():
+            chunk.exportPoints(
+                os.path.join(PROCESSING_FOLDER, chunk.label, filename),
+                source_data=ms.DataSource.DenseCloudData,
+                crs=chunk.crs)
+    except Exception as exception:
+        if "Null dense cloud" not in str(exception):
+            raise exception
 
 
 def build_orthomosaic(chunk: ms.Chunk) -> None:
